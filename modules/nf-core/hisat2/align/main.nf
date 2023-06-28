@@ -11,7 +11,7 @@ process HISAT2_ALIGN {
     input:
     tuple val(meta), path(reads)
     tuple val(meta2), path(index)
-    tuple val(meta3), path(splicesites)
+    // tuple val(meta3), path(splicesites)
 
     output:
     tuple val(meta), path("*.bam")                   , emit: bam
@@ -42,7 +42,6 @@ process HISAT2_ALIGN {
             -x \$INDEX \\
             -U $reads \\
             $strandedness \\
-            --known-splicesite-infile $splicesites \\
             --summary-file ${prefix}.hisat2.summary.log \\
             --threads $task.cpus \\
             $seq_center \\
@@ -65,7 +64,6 @@ process HISAT2_ALIGN {
             -1 ${reads[0]} \\
             -2 ${reads[1]} \\
             $strandedness \\
-            --known-splicesite-infile $splicesites \\
             --summary-file ${prefix}.hisat2.summary.log \\
             --threads $task.cpus \\
             $seq_center \\

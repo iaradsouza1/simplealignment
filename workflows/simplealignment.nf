@@ -52,7 +52,6 @@ include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 include { STAR_ALIGN                  } from '../modules/nf-core/star/align/main'
 include { STAR_GENOMEGENERATE         } from '../modules/nf-core/star/genomegenerate/main'
-include { HISAT2_EXTRACTSPLICESITES   } from '../modules/nf-core/hisat2/extractsplicesites/main'
 include { HISAT2_BUILD                } from '../modules/nf-core/hisat2/build/main'
 include { HISAT2_ALIGN                } from '../modules/nf-core/hisat2/align/main'
 
@@ -104,20 +103,14 @@ workflow SIMPLEALIGNMENT {
     ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
 
     // RUN HISAT2
-    HISAT2_EXTRACTSPLICESITES(
-        [ "genome", params.gtf ]
-    )
-
     HISAT2_BUILD(
         [ 'genome', params.fasta ],
-        [ 'genome', params.gtf   ],
-        HISAT2_EXTRACTSPLICESITES.out.txt
+        [ 'genome', params.gtf   ]
     )
 
     HISAT2_ALIGN(
         ch_reads               ,
         HISAT2_BUILD.out.index ,
-        HISAT2_EXTRACTSPLICESITES.out.txt
     )
     ch_versions = ch_versions.mix(HISAT2_ALIGN.out.versions.first())
 
