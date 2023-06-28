@@ -52,6 +52,8 @@ include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 include { STAR_ALIGN                  } from '../modules/nf-core/star/align/main'
 include { STAR_GENOMEGENERATE         } from '../modules/nf-core/star/genomegenerate/main'
+include { BOWTIE2_BUILD               } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN               } from '../modules/nf-core/bowtie2/align/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,6 +102,16 @@ workflow SIMPLEALIGNMENT {
     )
     ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
 
+    // RUN BOWTIE2
+    BOWTIE2_BUILD(
+        [ "index", params.fasta ]
+    )
+
+    BOWTIE2_ALIGN(
+        ch_reads, BOWTIE2_BUILD.out.index, false, true
+    )
+    ch_versions = ch_versions.mix(BOWTIE2_ALIGN.out.versions.first())
+
     //
     // MODULE: MultiQC
     //
@@ -115,6 +127,7 @@ workflow SIMPLEALIGNMENT {
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(STAR_ALIGN.out.log_final.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_ALIGN.out.log.collect{it[1]}.ifEmpty([]))
 
     MULTIQC (
         ch_multiqc_files.collect(),
