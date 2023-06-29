@@ -81,7 +81,6 @@ process FASTP {
             --json ${prefix}.fastp.json \\
             --html ${prefix}.fastp.html \\
             --thread $task.cpus \\
-            --detect_adapter_for_pe \\
             $args \\
             2> ${prefix}.fastp.log
 
