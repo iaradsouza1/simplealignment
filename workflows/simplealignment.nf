@@ -10,7 +10,7 @@ def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 WorkflowSimplealignment.initialise(params, log)
 
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta, params.gtf, params.fastp_adapter_fasta ]
+def checkPathParamList = [ params.input, params.multiqc_config, params.fasta, params.gtf ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -88,10 +88,7 @@ workflow SIMPLEALIGNMENT {
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
     FASTP(
-        ch_reads,
-        params.fastp_adapter_fasta,
-        params.fastp_save_trimmed_fail,
-        params.fastp_save_merged
+        ch_reads
     )
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
