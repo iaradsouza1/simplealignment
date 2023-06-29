@@ -10,7 +10,7 @@ def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 WorkflowSimplealignment.initialise(params, log)
 
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta, params.gtf ]
+def checkPathParamList = [ params.input, params.multiqc_config, params.fasta, params.gtf, params.fastp_adapter_fasta ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -50,6 +50,7 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include { FASTQC                      } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { FASTP                       } from '../modules/nf-core/fastp/main'
 include { STAR_ALIGN                  } from '../modules/nf-core/star/align/main'
 include { STAR_GENOMEGENERATE         } from '../modules/nf-core/star/genomegenerate/main'
 include { HISAT2_BUILD                } from '../modules/nf-core/hisat2/build/main'
@@ -86,9 +87,13 @@ workflow SIMPLEALIGNMENT {
     )
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
-    CUSTOM_DUMPSOFTWAREVERSIONS (
-        ch_versions.unique().collectFile(name: 'collated_versions.yml')
+    FASTP(
+        ch_reads,
+        params.fastp_adapter_fasta,
+        params.fastp_save_trimmed_fail,
+        params.fastp_save_merged
     )
+    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
     //
     // RUN STAR
@@ -98,7 +103,7 @@ workflow SIMPLEALIGNMENT {
     )
 
     STAR_ALIGN(
-        ch_reads, STAR_GENOMEGENERATE.out.index, params.gtf, false, '', ''
+        FASTP.out.reads, STAR_GENOMEGENERATE.out.index, params.gtf, false, '', ''
     )
     ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
 
@@ -109,10 +114,15 @@ workflow SIMPLEALIGNMENT {
     )
 
     HISAT2_ALIGN(
-        ch_reads               ,
+        FASTP.out.reads,
         HISAT2_BUILD.out.index ,
     )
     ch_versions = ch_versions.mix(HISAT2_ALIGN.out.versions.first())
+
+
+    CUSTOM_DUMPSOFTWAREVERSIONS (
+        ch_versions.unique().collectFile(name: 'collated_versions.yml')
+    )
 
     //
     // MODULE: MultiQC
@@ -128,6 +138,7 @@ workflow SIMPLEALIGNMENT {
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(FASTP.out.json.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(STAR_ALIGN.out.log_final.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(HISAT2_ALIGN.out.summary.collect{it[1]}.ifEmpty([]))
 
