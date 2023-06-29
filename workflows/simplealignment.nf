@@ -50,7 +50,6 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 include { FASTQC                      } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
-include { FASTP                       } from '../modules/nf-core/fastp/main'
 include { STAR_ALIGN                  } from '../modules/nf-core/star/align/main'
 include { STAR_GENOMEGENERATE         } from '../modules/nf-core/star/genomegenerate/main'
 include { HISAT2_BUILD                } from '../modules/nf-core/hisat2/build/main'
@@ -87,11 +86,6 @@ workflow SIMPLEALIGNMENT {
     )
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
-    FASTP(
-        ch_reads
-    )
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
-
     //
     // RUN STAR
     //
@@ -100,7 +94,7 @@ workflow SIMPLEALIGNMENT {
     )
 
     STAR_ALIGN(
-        FASTP.out.reads, STAR_GENOMEGENERATE.out.index, params.gtf, false, '', ''
+        ch_reads, STAR_GENOMEGENERATE.out.index, params.gtf, false, '', ''
     )
     ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
 
@@ -111,7 +105,7 @@ workflow SIMPLEALIGNMENT {
     )
 
     HISAT2_ALIGN(
-        FASTP.out.reads,
+        ch_reads,
         HISAT2_BUILD.out.index ,
     )
     ch_versions = ch_versions.mix(HISAT2_ALIGN.out.versions.first())
@@ -135,7 +129,6 @@ workflow SIMPLEALIGNMENT {
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(FASTP.out.json.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(STAR_ALIGN.out.log_final.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(HISAT2_ALIGN.out.summary.collect{it[1]}.ifEmpty([]))
 
